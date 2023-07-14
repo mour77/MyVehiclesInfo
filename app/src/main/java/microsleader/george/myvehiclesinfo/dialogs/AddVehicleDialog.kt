@@ -1,5 +1,7 @@
 package microsleader.george.myvehiclesinfo.dialogs
 
+import android.content.ContentValues
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
@@ -16,6 +18,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Button
+import androidx.compose.material.DropdownMenuItem
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.ExposedDropdownMenuBox
+import androidx.compose.material.ExposedDropdownMenuDefaults
 import androidx.compose.material.Icon
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
@@ -26,24 +32,26 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import microsleader.george.myvehiclesinfo.FireStoreMethods.Companion.addVehicle
 import microsleader.george.myvehiclesinfo.R
 import microsleader.george.myvehiclesinfo.classes.Vehicle
+import microsleader.george.myvehiclesinfo.myTests.Brands
+import microsleader.george.myvehiclesinfo.myTests.Models
 
 
 @Composable
@@ -55,6 +63,13 @@ fun AddVehicleDialog(value: String, setShowDialog: (Boolean) -> Unit, setValue: 
     val year = remember { mutableStateOf(value) }
     val kivika = remember { mutableStateOf(value) }
     val hp = remember { mutableStateOf(value) }
+    val db = Firebase.firestore
+    val brandsLista = remember { mutableStateListOf<Brands>() }
+    val modelsLista = remember { mutableStateListOf<Models>() }
+
+    var selectedBrand by remember { mutableStateOf("") }
+    var selectedBrandText by remember { mutableStateOf(Brands(0,"")) }
+
 
     var showDialog by remember {mutableStateOf(true)}
     val openDialog = remember { mutableStateOf(true) }
@@ -73,7 +88,57 @@ fun AddVehicleDialog(value: String, setShowDialog: (Boolean) -> Unit, setValue: 
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        GeneralTextField("Brand", brand, KeyboardOptions(keyboardType = KeyboardType.Text),200)
+
+                        DropDownBrands(brandsLista , selectedBrandText)
+                        db.collection("Brands")
+                            .orderBy("name")
+                            .get()
+                            .addOnSuccessListener { documents ->
+
+                                for (document in documents) {
+                                    val v = document.toObject(Brands::class.java)
+                                    Log.d(ContentValues.TAG, "${document.id} => " + v)
+                                    brandsLista.add(v)
+                                }
+                              //  vList = vehiclesArrayList.toList()
+                            }
+                            .addOnFailureListener { exception ->
+                                Log.w(ContentValues.TAG, "Error getting documents: ", exception)
+                            }
+
+
+
+
+
+                        DropDownModels(modelsLista)
+                        db.collection("Models")
+                            .whereEqualTo("make",selectedBrand)
+                            .orderBy("make")
+                            .get()
+                            .addOnSuccessListener { documents ->
+
+                                for (document in documents) {
+                                    val v = document.toObject(Models::class.java)
+                                    Log.d(ContentValues.TAG, "${document.id} => " + v)
+                                    modelsLista.add(v)
+                                }
+                                //  vList = vehiclesArrayList.toList()
+                            }
+                            .addOnFailureListener { exception ->
+                                Log.w(ContentValues.TAG, "Error getting documents: ", exception)
+                            }
+
+
+
+
+
+//                        LazyColumn(modifier = Modifier.height(200.dp)) {
+//                            items(items = brandsLista, itemContent = { item ->
+//                               // Log.d("COMPOSE", "This get rendered $item")
+//                                Text(text = item.name!!)
+//                            })
+//                        }
+                        // GeneralTextField("Brand", brand, KeyboardOptions(keyboardType = KeyboardType.Text),200)
                         Spacer(modifier = Modifier.width(20.dp))
                         GeneralTextField("Model", model, KeyboardOptions(keyboardType = KeyboardType.Text),200)
                     }
@@ -148,22 +213,148 @@ fun AddVehicleDialog(value: String, setShowDialog: (Boolean) -> Unit, setValue: 
 
 
 
+
+
+
+
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun textInput(label: String, value: String, onValueChange: (String) -> Unit
-) {
-    TextField(
-        label = { Text(label) },
-        value = value,
-        onValueChange = {onValueChange},
-        textStyle = TextStyle(
-            fontSize = 24.sp,
-            fontFamily = FontFamily.Default,
-            fontWeight = FontWeight.Bold
-        ),
+fun DropDownBrands(brandsLista: SnapshotStateList<Brands>,  selectedBrand: Brands) {
 
+    var expanded by remember { mutableStateOf(false) }
+    var modelsList = remember { mutableStateListOf<Models>()}
+    var selectedBrand by remember { mutableStateOf(selectedBrand) }
+    //var modelsList by remember { mutableStateOf(value )}
+    //var selectedOptionText = Vehicle("","",0,0,0)
+    val db = Firebase.firestore
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = {
+            expanded = !expanded
+        }
+    ) {
+        TextField(
+            readOnly = true,
+            value = selectedBrand.name!!,
+            onValueChange = {
+               // xaxa = it
+            },
+            label = { Text("Brand") },
+            trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(
+                    expanded = expanded
+                )
+            },
+            colors = ExposedDropdownMenuDefaults.textFieldColors()
         )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = {
+                expanded = false
+            }
+        ) {
+            brandsLista.forEach { selectionOption ->
+                DropdownMenuItem(
+                    onClick = {
+                        selectedBrand = selectionOption
+                        expanded = false
 
+                        //Log.d("xaxaxaxa",selectedBrand.name.toString())
+
+                        var xaxa = getModelsList(selectedBrand.name.toString())
+                        modelsList.clear()
+                        xaxa.forEach{
+                            modelsList.add(it)
+                        }
+
+
+
+                    }
+                ){
+                    Text(text = selectionOption.name!!)
+                }
+            }
+        }
+    }
 }
+
+
+
+
+fun getModelsList(selectedBrandName: String): List<Models> {
+
+    val db = Firebase.firestore
+    val modelsLista = ArrayList<Models>();
+    db.collection("Models")
+        .whereEqualTo("make",selectedBrandName)
+        .orderBy("make")
+        .get()
+        .addOnSuccessListener { documents ->
+
+            for (document in documents) {
+                val v = document.toObject(Models::class.java)
+                Log.d(ContentValues.TAG, "${document.id} => " + v)
+                modelsLista.add(v)
+            }
+
+        }
+        .addOnFailureListener { exception ->
+            Log.w(ContentValues.TAG, "Error getting documents: ", exception)
+        }
+    return   modelsLista.toList()
+}
+
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+fun DropDownModels(modelsLista: SnapshotStateList<Models>) {
+
+    var expanded by remember { mutableStateOf(false) }
+    var selectedOptionText by remember { mutableStateOf(Models(0,"")) }
+    //var selectedOptionText = Vehicle("","",0,0,0)
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = {
+            expanded = !expanded
+        }
+    ) {
+        TextField(
+            readOnly = true,
+            value = selectedOptionText.make!!,
+            onValueChange = { },
+            label = { Text("Model") },
+            trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(
+                    expanded = expanded
+                )
+            },
+            colors = ExposedDropdownMenuDefaults.textFieldColors()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = {
+                expanded = false
+            }
+        ) {
+            modelsLista.forEach { selectionOption ->
+                DropdownMenuItem(
+                    onClick = {
+                        selectedOptionText = selectionOption
+                        expanded = false
+                    }
+                ){
+                    Text(text = selectionOption.make!!)
+                }
+            }
+        }
+    }
+}
+
+
+
+
 
 @Composable
 fun GeneralTextField(

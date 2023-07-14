@@ -7,11 +7,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ExposedDropdownMenuBox
@@ -100,14 +97,13 @@ fun HomeScreen() {
                 Log.w(TAG, "Error getting documents: ", exception)
             }
 
-        LazyColumn(modifier = Modifier.height(200.dp)) {
-            items(items = vehiclesLista, itemContent = { item ->
-                Log.d("COMPOSE", "This get rendered $item")
-                Text(text = item.brand!!)
-            })
-        }
+//        LazyColumn(modifier = Modifier.height(200.dp)) {
+//            items(items = vehiclesLista, itemContent = { item ->
+//                Log.d("COMPOSE", "This get rendered $item")
+//                Text(text = item.brand!!)
+//            })
+//        }
 
-        //FirebaseUI(LocalContext.current, courseList)
     }
 
 
