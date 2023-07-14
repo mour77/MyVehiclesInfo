@@ -54,6 +54,7 @@ import microsleader.george.myvehiclesinfo.myTests.Brands
 import microsleader.george.myvehiclesinfo.myTests.Models
 
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun AddVehicleDialog(value: String, setShowDialog: (Boolean) -> Unit, setValue: (String) -> Unit) {
 
@@ -89,7 +90,80 @@ fun AddVehicleDialog(value: String, setShowDialog: (Boolean) -> Unit, setValue: 
                         verticalAlignment = Alignment.CenterVertically
                     ) {
 
-                        DropDownBrands(brandsLista , selectedBrandText)
+                        //DropDownBrands(brandsLista , selectedBrandText)
+
+
+
+
+                        var expanded by remember { mutableStateOf(false) }
+                        var modelsList = remember { mutableStateListOf<Models>()}
+                        //var modelsList by remember { mutableStateOf(value )}
+                        //var selectedOptionText = Vehicle("","",0,0,0)
+
+                        ExposedDropdownMenuBox(
+                            expanded = expanded,
+                            onExpandedChange = {
+                                expanded = !expanded
+                            }
+                        ) {
+                            TextField(
+                                readOnly = true,
+                                value = selectedBrand!!,
+                                onValueChange = {
+                                    // xaxa = it
+                                },
+                                label = { Text("Brand") },
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(
+                                        expanded = expanded
+                                    )
+                                },
+                                colors = ExposedDropdownMenuDefaults.textFieldColors()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = {
+                                    expanded = false
+                                }
+                            ) {
+                                brandsLista.forEach { selectionOption ->
+                                    DropdownMenuItem(
+                                        onClick = {
+                                            selectedBrand = selectionOption.name!!
+                                            expanded = false
+
+                                            //Log.d("xaxaxaxa",selectedBrand.name.toString())
+
+                                            db.collection("Models")
+                                                .whereEqualTo("make",selectedBrand)
+                                                .orderBy("make")
+                                                .get()
+                                                .addOnSuccessListener { documents ->
+
+                                                    modelsLista.clear()
+                                                    for (document in documents) {
+                                                        val v = document.toObject(Models::class.java)
+                                                        Log.d(ContentValues.TAG, "${document.id} => " + v)
+                                                        modelsLista.add(v)
+                                                    }
+
+                                                }
+                                                .addOnFailureListener { exception ->
+                                                    Log.w(ContentValues.TAG, "Error getting documents: ", exception)
+                                                }
+
+
+                                        }
+                                    ){
+                                        Text(text = selectionOption.name!!)
+                                    }
+                                }
+                            }
+                        }
+
+
+
+
                         db.collection("Brands")
                             .orderBy("name")
                             .get()
@@ -111,33 +185,7 @@ fun AddVehicleDialog(value: String, setShowDialog: (Boolean) -> Unit, setValue: 
 
 
                         DropDownModels(modelsLista)
-                        db.collection("Models")
-                            .whereEqualTo("make",selectedBrand)
-                            .orderBy("make")
-                            .get()
-                            .addOnSuccessListener { documents ->
 
-                                for (document in documents) {
-                                    val v = document.toObject(Models::class.java)
-                                    Log.d(ContentValues.TAG, "${document.id} => " + v)
-                                    modelsLista.add(v)
-                                }
-                                //  vList = vehiclesArrayList.toList()
-                            }
-                            .addOnFailureListener { exception ->
-                                Log.w(ContentValues.TAG, "Error getting documents: ", exception)
-                            }
-
-
-
-
-
-//                        LazyColumn(modifier = Modifier.height(200.dp)) {
-//                            items(items = brandsLista, itemContent = { item ->
-//                               // Log.d("COMPOSE", "This get rendered $item")
-//                                Text(text = item.name!!)
-//                            })
-//                        }
                         // GeneralTextField("Brand", brand, KeyboardOptions(keyboardType = KeyboardType.Text),200)
                         Spacer(modifier = Modifier.width(20.dp))
                         GeneralTextField("Model", model, KeyboardOptions(keyboardType = KeyboardType.Text),200)
@@ -217,69 +265,6 @@ fun AddVehicleDialog(value: String, setShowDialog: (Boolean) -> Unit, setValue: 
 
 
 
-@OptIn(ExperimentalMaterialApi::class)
-@Composable
-fun DropDownBrands(brandsLista: SnapshotStateList<Brands>,  selectedBrand: Brands) {
-
-    var expanded by remember { mutableStateOf(false) }
-    var modelsList = remember { mutableStateListOf<Models>()}
-    var selectedBrand by remember { mutableStateOf(selectedBrand) }
-    //var modelsList by remember { mutableStateOf(value )}
-    //var selectedOptionText = Vehicle("","",0,0,0)
-    val db = Firebase.firestore
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = {
-            expanded = !expanded
-        }
-    ) {
-        TextField(
-            readOnly = true,
-            value = selectedBrand.name!!,
-            onValueChange = {
-               // xaxa = it
-            },
-            label = { Text("Brand") },
-            trailingIcon = {
-                ExposedDropdownMenuDefaults.TrailingIcon(
-                    expanded = expanded
-                )
-            },
-            colors = ExposedDropdownMenuDefaults.textFieldColors()
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = {
-                expanded = false
-            }
-        ) {
-            brandsLista.forEach { selectionOption ->
-                DropdownMenuItem(
-                    onClick = {
-                        selectedBrand = selectionOption
-                        expanded = false
-
-                        //Log.d("xaxaxaxa",selectedBrand.name.toString())
-
-                        var xaxa = getModelsList(selectedBrand.name.toString())
-                        modelsList.clear()
-                        xaxa.forEach{
-                            modelsList.add(it)
-                        }
-
-
-
-                    }
-                ){
-                    Text(text = selectionOption.name!!)
-                }
-            }
-        }
-    }
-}
-
-
 
 
 fun getModelsList(selectedBrandName: String): List<Models> {
@@ -311,7 +296,7 @@ fun getModelsList(selectedBrandName: String): List<Models> {
 fun DropDownModels(modelsLista: SnapshotStateList<Models>) {
 
     var expanded by remember { mutableStateOf(false) }
-    var selectedOptionText by remember { mutableStateOf(Models(0,"")) }
+    var selectedOptionText by remember { mutableStateOf(Models(0,"","")) }
     //var selectedOptionText = Vehicle("","",0,0,0)
 
     ExposedDropdownMenuBox(
@@ -322,7 +307,7 @@ fun DropDownModels(modelsLista: SnapshotStateList<Models>) {
     ) {
         TextField(
             readOnly = true,
-            value = selectedOptionText.make!!,
+            value = selectedOptionText.model!!,
             onValueChange = { },
             label = { Text("Model") },
             trailingIcon = {
@@ -345,7 +330,7 @@ fun DropDownModels(modelsLista: SnapshotStateList<Models>) {
                         expanded = false
                     }
                 ){
-                    Text(text = selectionOption.make!!)
+                    Text(text = selectionOption.model!!)
                 }
             }
         }
